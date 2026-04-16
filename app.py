@@ -1,74 +1,123 @@
+# Run this app with `python app.py` and
+# visit http://127.0.0.1:8050/ in your web browser.
 import csv
 
-# easier to go though files
-input_files = [
-    './data/daily_sales_data_0.csv',
-    './data/daily_sales_data_1.csv',
-    './data/daily_sales_data_2.csv'
-]
+from dash import Dash, html, dcc
+import plotly.express as px
+import pandas as pd
 
-with open('./data/pink_morsel.csv', 'w', newline='') as pink_morsel:
-    writer = csv.writer(pink_morsel)
-    writer.writerow(["sales", "date", "region"])
+app = Dash()
 
-    for path in input_files:
-        with open(path, newline='') as f:
-            reader = csv.reader(f, delimiter=',')
+months_list = []
+montly_sales_list = []
 
-            next(reader)  # skips the header
+with open('./data/pink_morsel.csv', newline='') as pink_morsel:
+    reader = csv.reader(pink_morsel, delimiter=',', quotechar='|')
+    # First checkout the set
+    #for row in reader:
+    #   print(', '.join(row))
 
-            for row in reader:
-                # row structure: product, price, quantity, date, region
-                # pink morsel is in row[0]
-                if "pink morsel" not in row[0].lower():
-                    continue
-                else:
-                    print(', '.join(row)) # check takes
+    next(reader)  # skips the header otherwise the line count is +1
+                  # and I get an error lol
 
-                price = float(row[1].replace("$", ""))
-                quantity = int(row[2])
-                date = row[3]
-                region = row[4]
+    # I want more precise data, so extract for each month
+    # first look at month extraction
+    # month_count = 0
+    # month_current = "02"
+    # for row in reader:
+    #     month_new = row[1].split("-")[1]
+    #     if month_current != month_new:
+    #         month_current = month_new
+    #         month_count += 1
+    #
+    # print(month_count)
 
-                sales = price * quantity
+    # Now try to extract the average for each month
+    month_current = "02"
 
-                writer.writerow([sales, date, region])
+    montly_sales = 0
+
+    for row in reader:
+        # collect for the new month
+        month_new = row[1].split("-")[1]
+        # print(", ".join(row))
+        if month_current != month_new:
+            montly_sales_list.append(montly_sales)
+            montly_sales = 0
+            month_current = month_new
+            months_list.append(month_new)
+
+        # accumulate the sales for the month
+        montly_sales += float(row[0])
+
+    print(len(montly_sales_list))
+
+    # Check Sales results
+    # for i in range(0,len(montly_sales_list)):
+    #     print(i,montly_sales_list[i])
 
 
+for i in range(0, len(months_list)):
+    months_list[i] = str(2018 + int(i / 12)) + "-" + str(months_list[i])
 
-# Testing stuff
+print(len(montly_sales_list))
+print(len(months_list))
 
-# with open('./data/daily_sales_data_0.csv', newline='') as csvf0, \
-#      open('./data/daily_sales_data_1.csv', newline='') as csvf2, \
-#      open('./data/daily_sales_data_2.csv', newline='') as csvf3, \
-#      open('./data/pink_morsel.csv', "w", newline='') as combined_csv:
+# Graph
+df = pd.DataFrame({
+    "Sales": montly_sales_list,
+    "Month": months_list
+})
+
+fig = px.bar(df, x="Month", y="Sales", barmode="group")
+fig2 = px.scatter(df, x="Month", y="Sales",
+                 size="Sales", hover_name="Month",
+                 log_x=True)
+
+app.layout = html.Div(children=[
+     html.H1(children='Graph'),
+     html.H2(children='''
+         Pink Marsel Sales from 2018 to 2022.
+     '''),
+     dcc.Graph(
+         id='Sales Bar Chart',
+         figure=fig
+     ),
+     dcc.Graph(
+         id='Sales Scatter Chart',
+         figure=fig2
+     )
+])
+
+
+if __name__ == '__main__':
+     app.run(debug=True)
+
+# In conclusion the graph shows that rising the price of the candy didnt harm its sales
+# and that they have risen
+
+
+# Copy from example
+# df = pd.DataFrame({
+#     "Fruit": ["Apples", "Oranges", "Bananas", "Apples", "Oranges", "Bananas"],
+#     "Amount": [4, 1, 2, 2, 4, 5],
+#     "City": ["SF", "SF", "SF", "Montreal", "Montreal", "Montreal"]
+# })
 #
-#     files = [csvf0, csvf2, csvf3]
-#     writer = csv.writer(combined_csv)
+# fig = px.bar(df, x="Fruit", y="Amount", color="City", barmode="group")
 #
-#     for file in files:
-#         reader = csv.reader(file, delimiter=',', quotechar='|')
-#         for row in reader:
-#             if row[0] == "pink" and "morsel" in row[1]:
-#                 writer.writerow(row)
-#                 print(', '.join(row))
-#                 # pink_morsel.append(row)
+# app.layout = html.Div(children=[
+#     html.H1(children='Hello Dash'),
 #
-# with open('./data/pink_morsel.csv', newline='') as f:
-#     for row in f:
-#         print(', '.join(row))
-
-# with open('./data/daily_sales_data_0.csv', newline='') as csvf0, \
-#      open('./data/daily_sales_data_1.csv', newline='') as csvf2, \
-#      open('./data/daily_sales_data_2.csv', newline='') as csvf3, \
-#      open('./data/pink_morsel.csv', newline='') as combined_csv:
-#      wrtier = csv.writer(combined_csv)
-#      for row in pink_morsel:
-#          wrtier.writerow(row)
-
-
-
-# for row in pink_morsel:
-#     print(', '.join(row))
+#     html.Div(children='''
+#         Dash: A web application framework for your data.
+#     '''),
 #
-# print(', '.join(pink_morsel[0]))
+#     dcc.Graph(
+#         id='example-graph',
+#         figure=fig
+#     )
+# ])
+#
+# if __name__ == '__main__':
+#     app.run(debug=True)
