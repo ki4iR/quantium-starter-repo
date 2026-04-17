@@ -1,163 +1,114 @@
-# Run this app with `python app.py` and
-# visit http://127.0.0.1:8050/ in your web browser.
-import csv
-
+# Using the prev given example
+import pandas
 from dash import Dash, html, dcc
-import plotly.express as px
-import pandas as pd
+from plotly.express import line
 
-app = Dash()
+# the path to the formatted data file
+DATA_PATH = "./data/pink_morsel.csv"
 
-months_list = []
-montly_sales_list = []
+# load in data (rewrite for part3)
+data = pandas.read_csv(DATA_PATH)
+data = data.sort_values(by="date")
 
-with open('./data/pink_morsel.csv', newline='') as pink_morsel:
-    reader = csv.reader(pink_morsel, delimiter=',', quotechar='|')
-    # First checkout the set
-    #for row in reader:
-    #   print(', '.join(row))
+# initialize dash
+dash_app = Dash(__name__)
 
-    next(reader)  # skips the header otherwise the line count is +1
-                  # and I get an error lol
+# create the visualization
+line_chart = line(data, x="date", y="sales", color="region", title="Pink Morsel Sales")
+visualization = dcc.Graph(
+    id="visualization",
+    figure=line_chart,
+)
 
-    # I want more precise data, so extract for each month
-    # first look at month extraction
-    # month_count = 0
-    # month_current = "02"
-    # for row in reader:
-    #     month_new = row[1].split("-")[1]
-    #     if month_current != month_new:
-    #         month_current = month_new
-    #         month_count += 1
-    #
-    # print(month_count)
+# create the header
+header = html.H1(
+    "Pink Morsel Visualizer",
+    id="header"
+)
 
-    # Now try to extract the average for each month
-    month_current = "02"
+radio_btns = dcc.RadioItems(
+    options=['South','West','East','North','All'],
+    value='All',
+    id='radio-btns',
+    inline=True
+)
 
-    montly_sales = 0
+# define the app layout
+dash_app.layout = html.Div(
+    [
+        header,
+        radio_btns,
+        visualization
+    ],
+    # style={
+    #     'backgroundColor': 'black',
+    #     'color': 'white',
+    #     'fontFamily': 'Inter, Arial, sans-serif',
+    #     'fontWeight': '500',
+    #     'minHeight': '100vh',
+    #     'padding': '20px'
+    # }
+)
 
-    for row in reader:
-        # collect for the new month
-        month_new = row[1].split("-")[1]
-        # print(", ".join(row))
-        if month_current != month_new:
-            montly_sales_list.append(montly_sales)
-            montly_sales = 0
-            month_current = month_new
-            months_list.append(month_new)
+# Creating the callback
+# Always before running the served beacuse it won't load it haha xd
+from dash.dependencies import Input, Output
 
-        # accumulate the sales for the month
-        montly_sales += float(row[0])
+@dash_app.callback(
+    Output("visualization", "figure"),
+    Input("radio-btns", "value")
+)
+def update_graph(selected_region):
+    # If "All" → show everything
+    if selected_region == "All":
+        filtered = data
+    else:
+        filtered = data[data["region"].str.lower() == selected_region.lower()]
 
-    print(len(montly_sales_list))
+    # Rebuild the line chart with filtered data
+    fig = line(filtered, x="date", y="sales", color="region",
+               title="Pink Morsel Sales")
+    # Important
+    fig.update_layout(
+        plot_bgcolor="black",
+        paper_bgcolor="black",
+        font_color="white"
+    )
+    return fig
 
-    # Check Sales results
-    # for i in range(0,len(montly_sales_list)):
-    #     print(i,montly_sales_list[i])
-
-
-for i in range(0, len(months_list)):
-    months_list[i] = str(2018 + int(i / 12)) + "-" + str(months_list[i])
-
-print(len(montly_sales_list))
-print(len(months_list))
-
-# Graph
-df = pd.DataFrame({
-    "Sales": montly_sales_list,
-    "Month": months_list
-})
-
-fig = px.bar(df, x="Month", y="Sales", barmode="group")
-fig2 = px.scatter(df, x="Month", y="Sales",
-                 size="Sales", hover_name="Month",
-                 log_x=True)
-
-app.layout = html.Div(children=[
-     html.H1(children='Graph'),
-     html.H2(children='''
-         Pink Marsel Sales from 2018 to 2022.
-     '''),
-     dcc.Graph(
-         id='Sales Bar Chart',
-         figure=fig
-     ),
-     dcc.Graph(
-         id='Sales Scatter Chart',
-         figure=fig2
-     )
-])
-
-
+# this is only true if the module is executed as the program entrypoint
 if __name__ == '__main__':
-     app.run(debug=True)
+    dash_app.run()
 
-# In conclusion the graph shows that rising the price of the candy didnt harm its sales
-# and that they have risen
 
-# Line Chart
-# import pandas
-# from dash import Dash, html, dcc
-#
-# from plotly.express import line
-#
-# # the path to the formatted data file
-# DATA_PATH = "./pink_morsel.csv"
-#
-# # load in data
-# data = pandas.read_csv(DATA_PATH)
-# data = data.sort_values(by="date")
-#
-# # initialize dash
-# dash_app = Dash(__name__)
-#
-# # create the visualization
-# line_chart = line(data, x="date", y="sales", title="Pink Morsel Sales")
-# visualization = dcc.Graph(
-#     id="visualization",
-#     figure=line_chart
-# )
-#
-# # create the header
-# header = html.H1(
-#     "Pink Morsel Visualizer",
-#     id="header"
-# )
-#
-# # define the app layout
-# dash_app.layout = html.Div(
-#     [
-#         header,
-#         visualization
-#     ]
-# )
-#
-# # this is only true if the module is executed as the program entrypoint
-# if __name__ == '__main__':
-#     dash_app.run_server()
 
-# Copy from example
-# df = pd.DataFrame({
-#     "Fruit": ["Apples", "Oranges", "Bananas", "Apples", "Oranges", "Bananas"],
-#     "Amount": [4, 1, 2, 2, 4, 5],
-#     "City": ["SF", "SF", "SF", "Montreal", "Montreal", "Montreal"]
-# })
+# from dash import Dash, callback, html, Input, Output, ctx, callback
 #
-# fig = px.bar(df, x="Fruit", y="Amount", color="City", barmode="group")
+# app = Dash()
 #
-# app.layout = html.Div(children=[
-#     html.H1(children='Hello Dash'),
-#
-#     html.Div(children='''
-#         Dash: A web application framework for your data.
-#     '''),
-#
-#     dcc.Graph(
-#         id='example-graph',
-#         figure=fig
-#     )
+# app.layout = html.Div([
+#     html.Button('Button 1', id='btn-1'),
+#     html.Button('Button 2', id='btn-2'),
+#     html.Button('Button 3', id='btn-3'),
+#     html.Div(id='container'),
+#     html.Div(id='container-no-ctx')
 # ])
+#
+# @callback(
+#     Output('container-no-ctx', 'children'),
+#     Input('btn-1', 'n_clicks'),
+#     Input('btn-2', 'n_clicks'))
+# def update(btn1, btn2):
+#     return f'button 1: {btn1} & button 2: {btn2}'
+#
+#
+# @callback(Output('container','children'),
+#               Input('btn-1', 'n_clicks'),
+#               Input('btn-2', 'n_clicks'),
+#               Input('btn-3', 'n_clicks'))
+# def display(btn1, btn2, btn3):
+#     button_clicked = ctx.triggered_id
+#     return f'You last clicked button with ID {button_clicked}'
 #
 # if __name__ == '__main__':
 #     app.run(debug=True)
