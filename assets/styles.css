@@ -1,0 +1,25 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+
+body {
+    background-color: black;
+    color: white;
+    font-family: 'Inter', Arial, sans-serif;
+    font-weight: 500;
+}
+
+#radio-btns label {
+    color: white;
+}
+
+#radio-btns label:hover {
+    color: #bbbbff;
+    cursor: pointer;
+}
+
+#radio-btns input[type="radio"]:checked {
+    accent-color: #a855f7;
+}
+
+#radio-btns input[type="radio"]:hover {
+    accent-color: white;
+}
